@@ -99,7 +99,7 @@ input[type=color]{width:38px;height:34px;border:1px solid var(--line);border-rad
 <button class="btn alt" id="dsvg">Scarica SVG</button>
 </div>
 <p class="note" id="dnote" hidden>Il download non è disponibile in questa vista.</p>
-<div id="pub" hidden><button class="btn" id="bpub" style="width:100%;margin-top:14px" disabled>Pubblica la pagina PDF</button><div class="stat" id="stat"></div><div class="phone" id="phone"></div></div>
+<div id="pub" hidden><button class="btn" id="bpub" style="width:100%;margin-top:14px" disabled>Scarica la pagina PDF (HTML)</button><div class="stat" id="stat"></div><div class="phone" id="phone"></div></div>
 </aside>
 </div>
 </div>
@@ -109,7 +109,7 @@ var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s).replace(/([\\;,:"])/g,"\\$1")};
 var TYPES={
 url:{l:"Link",f:[["v","Indirizzo web","https://esempio.it"]],b:function(o){return o.v}},
-pdf:{l:"PDF",f:[["pdf","File PDF","","file","application/pdf"],["t","Titolo","Il nostro catalogo"],["s","Sottotitolo","Sfoglia la versione digitale"],["x","Altri sottotitoli","","multi"],["b","Testo del bottone","Apri il PDF"],["lg","Logo della pagina (se vuoto, usa quello del QR)","","file","image/*"],["pc","Colore della pagina","","color"]],b:function(){return S.files.pdf?BASE+"#"+S.pid:""}},
+pdf:{l:"PDF",f:[["pdf","File PDF","","file","application/pdf"],["t","Titolo","Il nostro catalogo"],["s","Sottotitolo","Sfoglia la versione digitale"],["x","Altri sottotitoli","","multi"],["b","Testo del bottone","Apri il PDF"],["lg","Logo della pagina (se vuoto, usa quello del QR)","","file","image/*"],["pc","Colore della pagina","","color"],["u","Indirizzo online della pagina (dopo averla caricata)","https://tuosito.it/catalogo"]],b:function(){var u=((S.vals.pdf||{}).u||"").trim();return /^https?:\/\//i.test(u)?u:""}},
 text:{l:"Testo",f:[["v","Il tuo testo","Scrivi qui…","area"]],b:function(o){return o.v}},
 wifi:{l:"Wi‑Fi",f:[["s","Nome della rete (SSID)",""],["p","Password","","pw"],["e","Sicurezza","","sel",[["WPA","WPA/WPA2/WPA3"],["WEP","WEP"],["nopass","Nessuna"]]]],b:function(o){return o.s?"WIFI:T:"+(o.e||"WPA")+";S:"+esc(o.s)+";P:"+esc(o.p||"")+";;":""}},
 mail:{l:"Email",f:[["a","Indirizzo email","nome@esempio.it"],["o","Oggetto",""],["m","Messaggio","","area"]],b:function(o){return o.a?"mailto:"+o.a+"?subject="+encodeURIComponent(o.o||"")+"&body="+encodeURIComponent(o.m||""):""}},
@@ -130,8 +130,8 @@ el.appendChild(mk("h3",{text:d.t||"Titolo della pagina"}));el.appendChild(mk("p"
 var th=mk("div",{className:"th",text:d.th?"":"PDF"});if(d.th)th.style.backgroundImage="url("+d.th+")";el.appendChild(th);
 var a=mk("a",{text:d.b||"Apri il PDF",href:d.href||"#"});a.style.background=c;if(d.href){a.target="_blank";a.rel="noopener"}el.appendChild(a)}
 function side(){var on=S.t==="pdf";$("#pub").hidden=!on;if(!on)return;var v=S.vals.pdf||{},ph=$("#phone");if(!ph.firstChild)ph.appendChild(mk("div"));
-land(ph.firstChild,{t:v.t,s:v.s,b:v.b,pc:v.pc,lg:S.pl||S.lg,th:S.th,x:v.x});$("#bpub").disabled=!(S.files.pdf&&DB&&AS);
-if(!window.claude)$("#stat").textContent="Per pubblicare apri la pagina dal link su claude.ai: da file salvato sul PC la pubblicazione non funziona.";else if(RES>=2&&!(DB&&AS))$("#stat").textContent="Per pubblicare devi aprire la pagina dal tuo account con permessi di modifica."}
+land(ph.firstChild,{t:v.t,s:v.s,b:v.b,pc:v.pc,lg:S.pl||S.lg,th:S.th,x:v.x});$("#bpub").disabled=!S.files.pdf;
+if(!$("#stat").textContent)$("#stat").textContent="1) Scarica la pagina. 2) Caricala su un hosting gratuito (es. GitHub Pages, Netlify, Cloudflare Pages). 3) Incolla qui sopra il suo indirizzo: il QR si genera e porta subito alla pagina.";if(0)$("#stat").textContent="Per pubblicare apri la pagina dal link su claude.ai: da file salvato sul PC la pubblicazione non funziona.";else if(0)$("#stat").textContent="Per pubblicare devi aprire la pagina dal tuo account con permessi di modifica."}
 
 function mk(tag,props,kids){var e=document.createElement(tag);for(var k in props){if(k==="text")e.textContent=props[k];else e[k]=props[k]}(kids||[]).forEach(function(c){e.appendChild(c)});return e}
 
@@ -202,6 +202,10 @@ if(HAS){claude.use("db").then(function(d){DB=d;RES++;side()});claude.use("assets
 $("#bpub").onclick=function(){if(!DB||!AS||!S.files.pdf)return;var v=S.vals.pdf||{},stt=$("#stat");stt.textContent="Pubblicazione in corso…";$("#bpub").disabled=true;
 AS.upload(S.files.pdf).then(function(p){return(S.files.lg||S.lf?AS.upload(S.files.lg||S.lf):Promise.resolve(null)).then(function(l){return DB.doc("pages/"+S.pid).set({t:v.t||"",s:v.s||"",x:(v.x||[]).filter(Boolean),b:v.b||"",pc:v.pc||"#6d4aff",th:S.th||"",href:p.url,lg:l?l.url:""})})})
 .then(function(){stt.textContent="Pagina pubblicata: il QR è attivo, ora puoi scaricarlo."}).catch(function(e){stt.textContent="Pubblicazione non riuscita: "+((e&&(e.message||e.code))||"errore")}).then(side)};
+var LCSS=".land{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:32px 22px;text-align:center}.land .lg{max-width:60%;max-height:84px;object-fit:contain}.land h3{margin:0;font-size:26px;letter-spacing:-.02em}.land p{margin:0;opacity:.75}.land .th{width:min(240px,70%);aspect-ratio:3/4;border-radius:12px;background:#fff center/cover no-repeat;box-shadow:0 14px 34px rgba(0,0,0,.22);display:grid;place-items:center;color:#aaa;font-weight:700}.land a{display:inline-block;text-decoration:none;color:#fff;font-weight:700;padding:14px 28px;border-radius:14px;margin-top:6px;box-shadow:0 10px 24px rgba(0,0,0,.2)}";
+function pageHTML(pdf){var v=S.vals.pdf||{},d=document.createElement("div");land(d,{t:v.t,s:v.s,x:v.x,b:v.b,pc:v.pc,lg:S.pl||S.lg,th:S.th,href:"#"});d.querySelector("a").id="o";d.removeAttribute("class");d.className="land";
+return'<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+d.querySelector("h3").innerHTML+'</title><style>*{box-sizing:border-box}html,body{height:100%;margin:0}body{font:16px/1.5 system-ui,-apple-system,sans-serif}'+LCSS+'</style></head><body>'+d.outerHTML+'<script>var P="'+pdf+'";document.getElementById("o").onclick=function(e){e.preventDefault();var b=atob(P.split(",")[1]),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);var w=URL.createObjectURL(new Blob([u],{type:"application/pdf"}));location.href=w};<\/script></body></html>'}
+$("#bpub").onclick=function(){if(!S.files.pdf)return;var fr=new FileReader();fr.onload=function(){save("index.html",pageHTML(fr.result));$("#stat").textContent="Pagina scaricata (index.html). Caricala online, poi incolla il suo indirizzo nel campo qui sopra."};fr.readAsDataURL(S.files.pdf)};
 var H=location.hash.replace("#","");
 if(H&&H!=="preview"){$("#app").hidden=true;var lv=$("#landv");lv.hidden=false;land(lv,{t:"Caricamento…",s:""});
 (HAS?claude.use("db"):Promise.resolve(null)).then(function(d){if(!d)throw 0;return d.doc("pages/"+H).get()}).then(function(x){if(!x.exists)throw 0;land(lv,x.data())}).catch(function(){land(lv,{t:"Pagina non disponibile",s:"Il link non è valido oppure non hai i permessi per vederla."})})}
